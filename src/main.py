@@ -3,6 +3,7 @@ import json
 import datetime
 import argparse
 import os
+import sys
 from typing import List, Dict, Any, Optional
 from ics import Calendar, Event
 from zoneinfo import ZoneInfo
@@ -228,8 +229,15 @@ def main():
     try:
         with open("src/input.txt", "r") as f:
             content = f.read()
+            
+        if not content.strip():
+            print("error: src/input.txt is empty.")
+            sys.exit(1)
         
         parsed_slots = parse_schedule(content)
+        
+        if not parsed_slots:
+             print("warning: 0 class slots parsed. check input format.")
         
         # prepare output directory
         output_dir = "outputs"
