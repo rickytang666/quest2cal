@@ -10,11 +10,12 @@ fi
 source venv/bin/activate
 
 # install dependencies
+# check if requirements.txt exists
 if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
+    pip install -r requirements.txt -q
 else
-    pip install ics
+    pip install ics -q
 fi
 
-# run script
-python3 src/quest2cal.py
+# run script with arguments
+python3 src/quest2cal.py "$@"

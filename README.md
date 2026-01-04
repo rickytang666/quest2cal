@@ -9,7 +9,12 @@
 
 1.  Copy your schedule from Quest (List View).
 2.  Paste it into `src/input.txt`.
-3.  Run `./run.sh`.
+3.  Run the script:
+    ```bash
+    ./run.sh
+    # or for lowercase names and notes:
+    ./run.sh --lower
+    ```
 4.  Find your schedule in `src/schedule.ics` and `src/schedule.json`.
 
 ## Logic

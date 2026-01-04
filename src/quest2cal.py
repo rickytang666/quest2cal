@@ -1,6 +1,7 @@
 import re
 import json
 import datetime
+import argparse
 from typing import List, Dict, Any, Optional
 from ics import Calendar, Event
 from zoneinfo import ZoneInfo
@@ -163,20 +164,24 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
 
     return parsed_slots
 
-def format_time_str(slot: Dict[str, Any]) -> str:
+def format_time_str(slot: Dict[str, Any], lower: bool = False) -> str:
     # "8:30 am - 9:50 am, weekly on tuesday and thursday from 1/5/2026 to 2/13/2026"
     days_str = " and ".join([DAY_MAP_FULL[d] for d in slot['days']])
-    return f"{slot['start_time'].lower()} - {slot['end_time'].lower()}, weekly on {days_str} from {slot['date_start']} to {slot['date_end']}"
+    t_str = f"{slot['start_time']} - {slot['end_time']}, weekly on {days_str} from {slot['date_start']} to {slot['date_end']}"
+    return t_str.lower() if lower else t_str
 
-def generate_ics(slots: List[Dict[str, Any]]) -> str:
+def generate_ics(slots: List[Dict[str, Any]], lower: bool = False) -> str:
     c = Calendar()
     tz = ZoneInfo("America/Toronto")
     
     for slot in slots:
         e = Event()
-        e.name = f"{slot['course']} {slot['component']}".lower()
+        name_str = f"{slot['course']} {slot['component']}"
+        desc_str = f"{slot['location_code_room']}\n{slot['instructor']}".strip()
+        
+        e.name = name_str.lower() if lower else name_str
         e.location = slot['location_full']
-        e.description = f"{slot['location_code_room']}\n{slot['instructor']}".strip()
+        e.description = desc_str.lower() if lower else desc_str
         
         # calculate start/end datetime of FIRST occurrence
         # parse dates
@@ -208,7 +213,7 @@ def generate_ics(slots: List[Dict[str, Any]]) -> str:
                 inst.location = e.location
                 inst.description = e.description
                 
-                # create timezone-aware datetimes
+                # Create timezone-aware datetimes
                 # combine(date, time) -> naive
                 # replace(tzinfo=tz) -> aware
                 dt_start = datetime.datetime.combine(curr, st_dt.time()).replace(tzinfo=tz)
@@ -219,9 +224,13 @@ def generate_ics(slots: List[Dict[str, Any]]) -> str:
                 c.events.add(inst)
             curr += datetime.timedelta(days=1)
 
-    return str(c)
+    return c.serialize()
 
 def main():
+    parser = argparse.ArgumentParser(description='Quest to Calendar converter')
+    parser.add_argument('--lower', action='store_true', help='Lowercase output for names and notes')
+    args = parser.parse_args()
+
     try:
         with open("src/input.txt", "r") as f:
             content = f.read()
@@ -231,11 +240,14 @@ def main():
         # format for json
         json_output = []
         for slot in parsed_slots:
+            name_str = f"{slot['course']} {slot['component']}"
+            notes_str = f"{slot['location_code_room']}\n{slot['instructor']}".strip()
+            
             json_output.append({
-                "name": f"{slot['course']} {slot['component']}".lower(),
-                "time": format_time_str(slot),
+                "name": name_str.lower() if args.lower else name_str,
+                "time": format_time_str(slot, lower=args.lower),
                 "location": slot['location_full'],
-                "notes": f"{slot['location_code_room']}\n{slot['instructor']}".strip()
+                "notes": notes_str.lower() if args.lower else notes_str
             })
             
         print(f"parsed {len(json_output)} class slots")
@@ -245,7 +257,7 @@ def main():
         print("saved to src/schedule.json")
         
         # generate ics
-        ics_content = generate_ics(parsed_slots)
+        ics_content = generate_ics(parsed_slots, lower=args.lower)
         with open("src/schedule.ics", "w") as f:
             f.write(ics_content)
         print("saved to src/schedule.ics")
