@@ -239,6 +239,7 @@ def generate_ics(slots: List[Dict[str, Any]], lower: bool = False) -> str:
 def main():
     parser = argparse.ArgumentParser(description='Quest to Calendar converter')
     parser.add_argument('--lower', action='store_true', help='Lowercase output for names and notes')
+    parser.add_argument('--test', action='store_true', help='Generate JSON output for testing')
     args = parser.parse_args()
 
     try:
@@ -252,27 +253,30 @@ def main():
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
-        # format for json
-        json_output = []
-        for slot in parsed_slots:
-            name_str = f"{slot['course']} {slot['component']}"
-            notes_str = f"{slot['location_code_room']}\n{slot['instructor']}".strip()
+        # format for json - ONLY IF TEST ARG IS PRESENT
+        if args.test:
+            json_output = []
+            for slot in parsed_slots:
+                name_str = f"{slot['course']} {slot['component']}"
+                notes_str = f"{slot['location_code_room']}\n{slot['instructor']}".strip()
+                
+                json_output.append({
+                    "name": name_str.lower() if args.lower else name_str,
+                    "time": format_time_str(slot, lower=args.lower),
+                    "location": slot['location_full'],
+                    "notes": notes_str.lower() if args.lower else notes_str
+                })
+                
+            print(f"parsed {len(json_output)} class slots")
             
-            json_output.append({
-                "name": name_str.lower() if args.lower else name_str,
-                "time": format_time_str(slot, lower=args.lower),
-                "location": slot['location_full'],
-                "notes": notes_str.lower() if args.lower else notes_str
-            })
-            
-        print(f"parsed {len(json_output)} class slots")
+            json_path = os.path.join(output_dir, "schedule.json")
+            with open(json_path, "w") as f:
+                json.dump(json_output, f, indent=4)
+            print(f"saved to {json_path}")
+        else:
+             print(f"parsed {len(parsed_slots)} class slots")
         
-        json_path = os.path.join(output_dir, "schedule.json")
-        with open(json_path, "w") as f:
-            json.dump(json_output, f, indent=4)
-        print(f"saved to {json_path}")
-        
-        # generate ics
+        # generate ics (always)
         ics_content = generate_ics(parsed_slots, lower=args.lower)
         ics_path = os.path.join(output_dir, "schedule.ics")
         with open(ics_path, "w") as f:

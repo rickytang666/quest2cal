@@ -10,12 +10,19 @@
 1.  Copy your schedule from Quest (List View).
 2.  Paste it into `src/input.txt`.
 3.  Run the script:
+
     ```bash
     ./run.sh
-    # or for lowercase names and notes:
-    ./run.sh --lower
     ```
-4.  Find your schedule in `outputs/schedule.ics` and `outputs/schedule.json`.
+
+    (Optional arguments):
+
+    `--lower` for lowercase names and notes
+    `--test` for JSON output as well
+
+4.  Find your schedule in `outputs/schedule.ics`.
+
+Note: Quest2Cal will only output classes (lectures, labs, tutorials, seminars, etc.), not exams.
 
 ## Logic
 
