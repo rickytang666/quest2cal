@@ -3,7 +3,7 @@ import json
 import datetime
 from typing import List, Dict, Any, Optional
 
-# Building Map for University of Waterloo
+# building map
 BUILDING_MAP = {
     "AL": "Arts Lecture Hall (AL)",
     "BMH": "B.C. Matthews Hall (BMH)",
@@ -41,36 +41,16 @@ BUILDING_MAP = {
 }
 
 def parse_schedule(text: str) -> List[Dict[str, Any]]:
-    """
-    Parses the raw text from Quest Class Schedule (List View).
-    Returns a list of course dictionaries.
-    """
-    
     courses = []
     
-    # 1. Regex definitions
-    
-    # Course Title: e.g. "CS 138 - Intro Data Abstract & Implem"
-    # Matches: [CODE] - [NAME]
+    # regex definitions
     course_re = re.compile(r'([A-Z]{2,5}\s+\d{3}[A-Z]?)\s+-\s+([^\r\n]+)')
-
-    # Class Header: e.g. "5951 \n 001 \n LEC"
-    # Matches: ClassNum, Section, Component
     class_header_re = re.compile(r'(\d{4,5})\s+(\d{3})\s+([A-Z]{3})\s+')
-
-    # Slot: contains Days/Time, Room, Instructor, Date Range
-    # We look for the Date Range as the anchor at the end of a slot.
-    # Date Range: "01/05/2026 - 02/13/2026"
     date_range_re = re.compile(r'(\d{2}/\d{2}/\d{4})\s*-\s*(\d{2}/\d{2}/\d{4})')
-    
-    # Time: "10:00AM - 11:20AM" or "10:00AM - 11:20AM"
-    # Captures: Start, End
     time_re = re.compile(r'(\d{1,2}:\d{2}[AP]M)\s*-\s*(\d{1,2}:\d{2}[AP]M)')
-    
-    # Days: "TTh", "MWF"
     days_re = re.compile(r'([MThWF]{1,6})')
 
-    # Find all start indices of courses to handle them block by block
+    # find all courses
     course_matches = list(course_re.finditer(text))
     
     for i, match in enumerate(course_matches):
@@ -79,12 +59,10 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
         
         start_idx = match.end()
         end_idx = course_matches[i+1].start() if i + 1 < len(course_matches) else len(text)
-        
         course_block = text[start_idx:end_idx]
         
-        # Now find classes within this course block
+        # find classes in course block
         class_matches = list(class_header_re.finditer(course_block))
-        
         parsed_classes = []
         
         for j, c_match in enumerate(class_matches):
@@ -94,46 +72,19 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
             
             c_start = c_match.end()
             c_end = class_matches[j+1].start() if j + 1 < len(class_matches) else len(course_block)
-            
             class_body = course_block[c_start:c_end]
             
-            # The class body contains one or more slots.
-            # Each slot ends with a date range.
-            # We can split by the date range to find slots.
-            
-            # Strategy: find all date ranges, and look backwards for the rest of the slot info
-            # The text immediately preceding the date range is the Instructor.
-            # Before that is Room.
-            # Before that is Time (or TBA)
-            # Before that is Days (or TBA?)
-            
-            # Let's find all date ranges in this class body
+            # extract slots by finding date ranges
             date_matches = list(date_range_re.finditer(class_body))
-            
             last_end = 0
+            
             for d_match in date_matches:
                 date_start_str = d_match.group(1)
                 date_end_str = d_match.group(2)
                 
-                # The text for this slot is from last_end to d_match.start()
+                # slot text is everything before the date range
                 slot_text = class_body[last_end:d_match.start()].strip()
                 last_end = d_match.end()
-                
-                # Parse slot_text
-                # It usually looks like:
-                # TTh 10:00AM - 11:20AM
-                # EIT 1015
-                # Mike Godfrey
-                
-                # We need to be careful about newlines and spaces.
-                # Let's tokenize by lines roughly?
-                
-                # Extract Instructor (last part)
-                # It's hard to distinguish Room from Instructor just by regex if weird names are used.
-                # But typically Room is like "BLDG 123" or "TBA".
-                
-                # Let's try matching Days/Time first at the start of slot_text
-                # If slot_text starts with TBA, handle that.
                 
                 current_days = []
                 start_time = None
@@ -141,40 +92,29 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
                 location = "TBA"
                 instructor = "TBA"
                 
-                # Search for Time pattern
+                # find time
                 t_match = time_re.search(slot_text)
                 if t_match:
                     start_time = t_match.group(1)
                     end_time = t_match.group(2)
                     
-                    # Days should be before time
+                    # days before time
                     pre_time = slot_text[:t_match.start()].strip()
-                    # Clean up: "TTh" might be "TTh "
                     d_match_days = days_re.search(pre_time)
                     if d_match_days:
                          days_str = d_match_days.group(1)
-                         # Parse days: M, T, W, Th, F
-                         # Order usually M T W Th F
-                         # "TTh" -> T, Th
-                         # "MWF" -> M, W, F
-                         
-                         # Naive parsing
                          days_map = []
                          if 'Su' in days_str: days_map.append('Su'); days_str = days_str.replace('Su','')
                          if 'M' in days_str: days_map.append('M')
-                         if 'Th' in days_str: days_map.append('Th'); days_str = days_str.replace('Th','') # Handle Th before T
-                         if 'T' in days_str: days_map.append('T') # This T is Tuesday
+                         if 'Th' in days_str: days_map.append('Th'); days_str = days_str.replace('Th','')
+                         if 'T' in days_str: days_map.append('T')
                          if 'W' in days_str: days_map.append('W')
                          if 'F' in days_str: days_map.append('F')
                          if 'S' in days_str: days_map.append('S')
-                         
                          current_days = days_map
                     
-                    # Location and Instructor are after time
+                    # location and instructor after time
                     post_time = slot_text[t_match.end():].strip()
-                    
-                    # Split by first newline to guess Room vs Instructor?
-                    # "EIT 1015\nMike Godfrey"
                     parts = [p.strip() for p in post_time.split('\n') if p.strip()]
                     
                     if parts:
@@ -182,22 +122,14 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
                         if len(parts) > 1:
                             instructor = ", ".join(parts[1:])
                         else:
-                            instructor = "TBA" # Or maybe it's missing
-                else:
-                    # No time found? Might be TBA or just empty?
-                    # Check for TBA
-                    pass
-                
-                # Resolve full building name
-                # Location usually starts with building code e.g. "EIT 1015"
+                            instructor = "TBA"
+
+                # resolve building name
                 loc_parts = location.split()
                 if loc_parts:
                     bldg_code = loc_parts[0]
                     if bldg_code in BUILDING_MAP:
                         full_name = BUILDING_MAP[bldg_code]
-                        # Replace code with full name? Or append?
-                        # User wants "convert building code to real location"
-                        # "EIT 1015" -> "Centre for Environmental ... (EIT) 1015"
                         location = f"{full_name} {' '.join(loc_parts[1:])}"
 
                 parsed_classes.append({
@@ -228,16 +160,17 @@ def main():
         
         schedule = parse_schedule(content)
         
-        print(json.dumps(schedule, indent=2))
+        # print to stdout for run.sh to potentially capture, or just log
+        print(f"parsed {len(schedule)} courses")
         
-        # Save to json for inspection
         with open("src/schedule.json", "w") as f:
             json.dump(schedule, f, indent=2)
+        print("saved to src/schedule.json")
             
     except FileNotFoundError:
-        print("Error: src/input.txt not found.")
+        print("error: src/input.txt not found.")
     except Exception as e:
-        print(f"Error parsing schedule: {e}")
+        print(f"error parsing schedule: {e}")
 
 if __name__ == "__main__":
     main()

@@ -49,6 +49,7 @@ venv.bak/
 *.txt
 !requirements.txt
 *.ics
+*.json
 
 # IDE
 .idea/
