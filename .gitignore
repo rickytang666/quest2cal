@@ -46,7 +46,8 @@ env.bak/
 venv.bak/
 
 # Project Specific
-input.txt
+*.txt
+!requirements.txt
 *.ics
 
 # IDE
