@@ -24,7 +24,12 @@
 
 Note: Quest2Cal will only output classes (lectures, labs, tutorials, seminars, etc.), not exams.
 
-## Logic
+## Dependencies
+
+- Python 3
+- `ics` library (installed automatically by `run.sh`)
+
+## How it works
 
 The script uses regex to parse the raw text hierarchy:
 
@@ -33,8 +38,6 @@ The script uses regex to parse the raw text hierarchy:
 3.  **Slot**: `[Date Range]` anchors each schedule slot.
     - Backtracks from the date range to find `Instructor`, `Location`, and `Time/Days`.
     - Maps building codes (e.g., `STC`) to full names (e.g., `Science Teaching Complex`).
-
-## Dependencies
-
-- Python 3
-- `ics` library (installed automatically by `run.sh`)
+4.  **Recurrence**:
+    - Instead of using standard iCal `RRULE`, the script "flattens" recurrence into individual events for every single class instance.
+    - This ensures `America/Toronto` timezone is applied correctly to each event and maximizes compatibility with Google Calendar/Apple Calendar.

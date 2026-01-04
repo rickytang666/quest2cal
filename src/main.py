@@ -52,7 +52,7 @@ BUILDING_MAP = {
     "WEM": "William M. Tatham Centre (WEM)",
 }
 
-# day map for display and rrule
+# mappings
 DAY_MAP_FULL = {'M': 'monday', 'T': 'tuesday', 'W': 'wednesday', 'Th': 'thursday', 'F': 'friday', 'S': 'saturday', 'Su': 'sunday'}
 DAY_MAP_RRULE = {'M': 'MO', 'T': 'TU', 'W': 'WE', 'Th': 'TH', 'F': 'FR', 'S': 'SA', 'Su': 'SU'}
 DAY_INTS = {'M': 0, 'T': 1, 'W': 2, 'Th': 3, 'F': 4, 'S': 5, 'Su': 6}
@@ -67,7 +67,6 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
     time_re = re.compile(r'(\d{1,2}:\d{2}[AP]M)\s*-\s*(\d{1,2}:\d{2}[AP]M)')
     days_re = re.compile(r'([MThWF]{1,6})')
 
-    # find all courses
     course_matches = list(course_re.finditer(text))
     
     for i, match in enumerate(course_matches):
@@ -78,7 +77,6 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
         end_idx = course_matches[i+1].start() if i + 1 < len(course_matches) else len(text)
         course_block = text[start_idx:end_idx]
         
-        # find classes in course block
         class_matches = list(class_header_re.finditer(course_block))
         
         for j, c_match in enumerate(class_matches):
@@ -86,7 +84,7 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
             section = c_match.group(2)
             component = c_match.group(3)
             
-            # ignore TST
+            # skip tests
             if component == 'TST':
                 continue
             
@@ -94,7 +92,7 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
             c_end = class_matches[j+1].start() if j + 1 < len(class_matches) else len(course_block)
             class_body = course_block[c_start:c_end]
             
-            # extract slots by finding date ranges
+            # slots
             date_matches = list(date_range_re.finditer(class_body))
             last_end = 0
             
@@ -102,7 +100,6 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
                 date_start_str = d_match.group(1)
                 date_end_str = d_match.group(2)
                 
-                # slot text is everything before the date range
                 slot_text = class_body[last_end:d_match.start()].strip()
                 last_end = d_match.end()
                 
@@ -113,13 +110,11 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
                 location_code = ""
                 instructor = "TBA"
                 
-                # find time
                 t_match = time_re.search(slot_text)
                 if t_match:
                     start_time = t_match.group(1)
                     end_time = t_match.group(2)
                     
-                    # days before time
                     pre_time = slot_text[:t_match.start()].strip()
                     d_match_days = days_re.search(pre_time)
                     if d_match_days:
@@ -134,7 +129,6 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
                          if 'S' in days_str: days_map.append('S')
                          current_days = days_map
                     
-                    # location and instructor after time
                     post_time = slot_text[t_match.end():].strip()
                     parts = [p.strip() for p in post_time.split('\n') if p.strip()]
                     
@@ -145,7 +139,7 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
                         else:
                             instructor = ""
 
-                # resolve building name
+                # resolve loc
                 loc_parts = location_code.split()
                 if loc_parts:
                     bldg_code = loc_parts[0]
@@ -193,26 +187,17 @@ def generate_ics(slots: List[Dict[str, Any]], lower: bool = False) -> str:
         e.location = slot['location_full']
         e.description = desc_str.lower() if lower else desc_str
         
-        # calculate start/end datetime of FIRST occurrence
-        # parse dates
+        
+        # flatten events
         m, d, y = map(int, slot['date_start'].split('/'))
         start_date_obj = datetime.date(y, m, d)
-        
-        # apply timezone to recurrence end date
         em, ed, ey = map(int, slot['date_end'].split('/'))
         end_date_obj = datetime.date(ey, em, ed)
         
-        # parse times
-        # 10:00AM -> format %I:%M%p
         st_dt = datetime.datetime.strptime(slot['start_time'], "%I:%M%p")
         et_dt = datetime.datetime.strptime(slot['end_time'], "%I:%M%p")
         
-        # find first day that matches one of the days
-        # start_date_obj weekday() returns 0=Mon
         valid_days = [DAY_INTS[d] for d in slot['days']]
-        
-        # loop until end_date_obj to find all occurrences
-        # flattening events instead of RRULE for simplicity and correctness with timezones
         
         curr = start_date_obj
         while curr <= end_date_obj:
@@ -223,9 +208,7 @@ def generate_ics(slots: List[Dict[str, Any]], lower: bool = False) -> str:
                 inst.location = e.location
                 inst.description = e.description
                 
-                # Create timezone-aware datetimes
-                # combine(date, time) -> naive
-                # replace(tzinfo=tz) -> aware
+                # aware dt
                 dt_start = datetime.datetime.combine(curr, st_dt.time()).replace(tzinfo=tz)
                 dt_end = datetime.datetime.combine(curr, et_dt.time()).replace(tzinfo=tz)
                 
