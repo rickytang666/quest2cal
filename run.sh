@@ -18,4 +18,4 @@ else
 fi
 
 # run script with arguments
-python3 src/quest2cal.py "$@"
+python3 src/main.py "$@"
