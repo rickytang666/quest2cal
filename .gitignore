@@ -46,8 +46,8 @@ env.bak/
 venv.bak/
 
 # Project Specific
-*.txt
-!requirements.txt
+src/input.txt
+outputs/
 *.ics
 *.json
 

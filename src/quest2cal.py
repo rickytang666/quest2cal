@@ -2,6 +2,7 @@ import re
 import json
 import datetime
 import argparse
+import os
 from typing import List, Dict, Any, Optional
 from ics import Calendar, Event
 from zoneinfo import ZoneInfo
@@ -43,6 +44,7 @@ BUILDING_MAP = {
     "QNC": "Mike & Ophelia Lazaridis Quantum-Nano Centre (QNC)",
     "RCH": "J.R. Coutts Engineering Lecture Hall (RCH)",
     "REN": "Renison University College (REN)",
+    "SLC": "Student Life Centre (SLC)",
     "STC": "Science Teaching Complex (STC)",
     "TH": "Tatham Centre (TH)",
     "UWP": "University of Waterloo Place (UWP)",
@@ -149,7 +151,7 @@ def parse_schedule(text: str) -> List[Dict[str, Any]]:
                     bldg_code = loc_parts[0]
                     if bldg_code in BUILDING_MAP:
                         full_name = BUILDING_MAP[bldg_code]
-                        location_full = f"{full_name}"
+                        location_full = full_name
                     else:
                         location_full = location_code # fallback
                 
@@ -183,6 +185,7 @@ def generate_ics(slots: List[Dict[str, Any]], lower: bool = False) -> str:
     
     for slot in slots:
         e = Event()
+        
         name_str = f"{slot['course']} {slot['component']}"
         desc_str = f"{slot['location_code_room']}\n{slot['instructor']}".strip()
         
@@ -244,6 +247,11 @@ def main():
         
         parsed_slots = parse_schedule(content)
         
+        # prepare output directory
+        output_dir = "outputs"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        
         # format for json
         json_output = []
         for slot in parsed_slots:
@@ -259,15 +267,17 @@ def main():
             
         print(f"parsed {len(json_output)} class slots")
         
-        with open("src/schedule.json", "w") as f:
+        json_path = os.path.join(output_dir, "schedule.json")
+        with open(json_path, "w") as f:
             json.dump(json_output, f, indent=4)
-        print("saved to src/schedule.json")
+        print(f"saved to {json_path}")
         
         # generate ics
         ics_content = generate_ics(parsed_slots, lower=args.lower)
-        with open("src/schedule.ics", "w") as f:
+        ics_path = os.path.join(output_dir, "schedule.ics")
+        with open(ics_path, "w") as f:
             f.write(ics_content)
-        print("saved to src/schedule.ics")
+        print(f"saved to {ics_path}")
 
             
     except FileNotFoundError:

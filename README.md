@@ -15,7 +15,7 @@
     # or for lowercase names and notes:
     ./run.sh --lower
     ```
-4.  Find your schedule in `src/schedule.ics` and `src/schedule.json`.
+4.  Find your schedule in `outputs/schedule.ics` and `outputs/schedule.json`.
 
 ## Logic
 
