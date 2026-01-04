@@ -4,3 +4,25 @@
 </div>
 
 ---
+
+## Usage
+
+1.  Copy your schedule from Quest (List View).
+2.  Paste it into `src/input.txt`.
+3.  Run `./run.sh`.
+4.  Find your schedule in `src/schedule.ics` and `src/schedule.json`.
+
+## Logic
+
+The script uses regex to parse the raw text hierarchy:
+
+1.  **Course**: `[CODE] - [NAME]` matches course blocks.
+2.  **Class**: `[ClassNum] [Section] [Component]` matches class sections within a course.
+3.  **Slot**: `[Date Range]` anchors each schedule slot.
+    - Backtracks from the date range to find `Instructor`, `Location`, and `Time/Days`.
+    - Maps building codes (e.g., `STC`) to full names (e.g., `Science Teaching Complex`).
+
+## Dependencies
+
+- Python 3
+- `ics` library (installed automatically by `run.sh`)
