@@ -182,10 +182,14 @@ def generate_ics(slots: List[Dict[str, Any]], lower: bool = False) -> str:
         e = Event()
         
         name_str = f"{slot['course']} {slot['component']}"
-        desc_str = f"{slot['location_code_room']}\n{slot['instructor']}".strip()
+        instructor_str = slot['instructor']
+        if "to be announced" in instructor_str.lower():
+            desc_str = slot['location_code_room']
+        else:
+            desc_str = f"{slot['location_code_room']}\n{instructor_str}".strip()
         
         e.name = name_str.lower() if lower else name_str
-        e.location = slot['location_full']
+        e.location = slot['location_full'].lower() if lower else slot['location_full']
         e.description = desc_str.lower() if lower else desc_str
         
         
@@ -249,12 +253,17 @@ def main():
             json_output = []
             for slot in parsed_slots:
                 name_str = f"{slot['course']} {slot['component']}"
-                notes_str = f"{slot['location_code_room']}\n{slot['instructor']}".strip()
+                
+                instructor_str = slot['instructor']
+                if "to be announced" in instructor_str.lower():
+                    notes_str = slot['location_code_room']
+                else:
+                    notes_str = f"{slot['location_code_room']}\n{instructor_str}".strip()
                 
                 json_output.append({
                     "name": name_str.lower() if args.lower else name_str,
                     "time": format_time_str(slot, lower=args.lower),
-                    "location": slot['location_full'],
+                    "location": slot['location_full'].lower() if args.lower else slot['location_full'],
                     "notes": notes_str.lower() if args.lower else notes_str
                 })
                 
