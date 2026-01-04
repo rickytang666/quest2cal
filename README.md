@@ -7,20 +7,22 @@
 
 ## Usage
 
-1.  Copy your schedule from Quest (List View).
-2.  Paste it into `src/input.txt`.
-3.  Run the script:
+1.  Go to Quest and select all (Ctrl+A) your schedule.
+2.  Copy the schedule.
+3.  Paste it into `src/input.txt`.
+4.  Run the script:
 
     ```bash
     ./run.sh
     ```
 
-    (Optional arguments):
+    (optional arguments):
 
     `--lower` for lowercase names and notes
     `--test` for JSON output as well
 
-4.  Find your schedule in `outputs/schedule.ics`.
+5.  Find your schedule in `outputs/schedule.ics`
+6.  Import it into your calendar
 
 Note: Quest2Cal will only output classes (lectures, labs, tutorials, seminars, etc.), not exams.
 
@@ -40,4 +42,8 @@ The script uses regex to parse the raw text hierarchy:
     - Maps building codes (e.g., `STC`) to full names (e.g., `Science Teaching Complex`).
 4.  **Recurrence**:
     - Instead of using standard iCal `RRULE`, the script "flattens" recurrence into individual events for every single class instance.
-    - This ensures `America/Toronto` timezone is applied correctly to each event and maximizes compatibility with Google Calendar/Apple Calendar.
+    - This ensures `America/Toronto` timezone is applied correctly to each event and maximizes compatibility with Google/Apple Calendar.
+
+## License
+
+MIT License
